@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動式教學：中垂線與角平分線</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; color: #333; line-height: 1.6; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #4a90e2; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #4a90e2; margin-top: 20px; font-size: 20px; }
+        .section { display: none; }
+        .active { display: block; }
+        .question-box { background: #f1f8ff; padding: 20px; margin-bottom: 20px; border-left: 5px solid #4a90e2; border-radius: 8px; }
+        .source-tag { display: inline-block; background: #e2e3e5; color: #6c757d; font-size: 12px; padding: 2px 8px; border-radius: 12px; margin-bottom: 10px; }
+        .hint-box { display: none; background: #fff3cd; color: #856404; padding: 15px; margin-top: 15px; border-left: 5px solid #ffc107; border-radius: 4px; font-weight: bold; }
+        .success-box { display: none; background: #d4edda; color: #155724; padding: 15px; margin-top: 15px; border-left: 5px solid #28a745; border-radius: 4px; font-weight: bold; }
+        button { background: #4a90e2; color: white; border: none; padding: 12px 24px; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 15px; }
+        button:hover { background: #357abd; }
+        .btn-admin { background: #6c757d; float: right; padding: 8px 16px; font-size: 14px; }
+        .btn-admin:hover { background: #5a6268; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .radio-group { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .radio-group label { cursor: pointer; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #ddd; transition: 0.2s; }
+        .radio-group label:hover { background: #e9ecef; }
+        #dashboard { background: #f8f9fa; border: 2px solid #4a90e2; padding: 20px; border-radius: 8px; }
+        
+        /* 後台表格樣式 */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; vertical-align: middle; }
+        th { background-color: #4a90e2; color: white; white-space: nowrap; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .ai-diagnosis-cell { max-width: 280px; text-align: left; font-size: 13px; line-height: 1.5; color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📐 數學 3-4：中垂線與角平分線的性質</h1>
+
+    <div id="login-section" class="section active">
+        <button class="btn-admin" onclick="showAdmin()">🧑‍🏫 教師後台</button>
+        <h2>🧑‍🎓 學生登入區</h2>
+        <label>班級：</label>
+        <select id="student-class"></select>
+        <label>座號：</label>
+        <input type="number" id="student-number" min="1" max="50" placeholder="請輸入座號">
+        <label>姓名：</label>
+        <input type="text" id="student-name" placeholder="請輸入真實姓名">
+        <button onclick="startTest('pretest')">開始前測</button>
+    </div>
+
+    <div id="pretest-section" class="section">
+        <h2>📝 前測（診斷先備概念）</h2>
+        <p>請盡力作答，這將幫助 AI 分析你的學習破口。</p>
+        <div id="pretest-container"></div>
+        <button onclick="submitPreTest()">提交前測並進入互動學習區</button>
+    </div>
+
+    <div id="learning-section" class="section">
+        <h2>💡 互動學習區（課本精選）</h2>
+        <p>答錯時系統會給予「提示」幫助你釐清課本觀念！</p>
+        <div id="learning-container"></div>
+        <button id="btn-to-posttest" style="display:none;" onclick="startTest('posttest')">進入後測</button>
+    </div>
+
+    <div id="posttest-section" class="section">
+        <h2>🏆 後測（驗證學習成效）</h2>
+        <p>題目與前測概念相同，讓我們來看看你有沒有進步！</p>
+        <div id="posttest-container"></div>
+        <button onclick="submitPostTest()">提交並查看個人報告</button>
+    </div>
+
+    <div id="report-section" class="section">
+        <h2>📊 個人學習報告</h2>
+        <div id="dashboard">
+            <h3 id="report-name"></h3>
+            <p>📝 前測得分： <span id="score-pre" style="color:#e74c3c; font-size:24px; font-weight:bold;"></span> 分</p>
+            <p>🏆 後測得分： <span id="score-post" style="color:#28a745; font-size:24px; font-weight:bold;"></span> 分</p>
+            <p>💡 學習區觸發提示次數： <span id="hint-count" style="color:#f39c12; font-size:20px; font-weight:bold;"></span> 次</p>
+            <hr>
+            <h4>🤖 AI 弱點分析與學習狀況總結：</h4>
+            <p id="ai-analysis" style="line-height: 1.8;"></p>
+        </div>
+        <button onclick="location.reload()">完成測驗 (返回首頁)</button>
+    </div>
+
+    <div id="admin-section" class="section">
+        <h2>🧑‍🏫 教師後台：全校學生學習總表</h2>
+        <p style="color: #e74c3c; font-size: 14px;">※ 注意：目前的資料僅儲存於本台電腦瀏覽器中，適合期末展示或單機實測使用。</p>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>班級</th>
+                        <th>座號</th>
+                        <th>姓名</th>
+                        <th>前測</th>
+                        <th>後測</th>
+                        <th>提示</th>
+                        <th>狀態</th>
+                        <th>🤖 AI 診斷與建議</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                    </tbody>
+            </table>
+        </div>
+        <br>
+        <button onclick="location.reload()">返回首頁</button>
+        <button class="btn-danger" style="float: right;" onclick="clearAllData()">清除所有資料</button>
+    </div>
+</div>
+
+<script>
+    // --- 載入時自動產生 22 個班級 ---
+    window.onload = function() {
+        const classSelect = document.getElementById('student-class');
+        for(let i = 1; i <= 22; i++) {
+            let option = document.createElement('option');
+            option.value = `8${i.toString().padStart(2, '0')}`;
+            option.text = `八年 ${i} 班`;
+            classSelect.appendChild(option);
+        }
+    };
+
+    // --- 題庫資料 (課本原題) ---
+    const preTestData = [
+        { source: "課本 P.144 隨堂", q: "直線 L 為線段 BC 的中垂線，且交 AB 於 E 點。若三角形 AEC 周長為 26，AC = 8，則 AB = ?", opts: ["10", "14", "18", "22"], ans: 2 },
+        { source: "課本 P.147 隨堂", q: "三角形 ABC 中，D 在 BC 上，DE 垂直 AB、DF 垂直 AC，且 DE = DF。若 ∠BAD = 42°，∠C = 60°，則 ∠B = ?", opts: ["36°", "42°", "60°", "78°"], ans: 0 },
+        { source: "課本 P.150 隨堂", q: "三角形 ABC 中，∠A = 58°，∠B = 64°，則此三角形的邊長中，哪兩個邊的長度相等？", opts: ["AB = BC", "AB = AC", "BC = AC", "三邊皆不相等"], ans: 0 },
+        { source: "課本 P.153 自我評量2", q: "AD 為 ∠BAC 的角平分線，交 BC 於 D 點，DE 垂直 AB、DF 垂直 AC，且 AB = 6、AC = 8。若三角形 ABC 的面積為 21，則 DE = ?", opts: ["2", "3", "4", "5"], ans: 1 },
+        { source: "課本 P.154 挑錯題", q: "五邊形公園內部欲設置一座涼亭，使涼亭到步道 AB、BC 之距離相等，且到洗手間 C、E 兩處的距離亦相等。應尋找何種線的交點？", opts: ["∠ABC 的角平分線與 CE 的中垂線", "∠ABC 的角平分線與 CE 的角平分線", "AB 的中垂線與 CE 的中垂線", "AB 的中垂線與 CE 的角平分線"], ans: 0 }
+    ];
+
+    const learningData = [
+        { source: "中垂線性質 (P.144)", q: "直線 L 為線段 BC 的中垂線，且交 AB 於 E 點。若三角形 AEC 周長為 26，AC = 8，求 AB？", opts: ["14", "16", "18", "26"], ans: 2, hint: "根據中垂線性質，E 在 BC 中垂線上，所以 EB = EC。周長 AEC = AE + EC + AC。把 EC 換成 EB，你會發現 AE + EB 剛好等於整條 AB！所以 AB + 8 = 26。" },
+        { source: "角平分線性質 (P.146)", q: "直角三角形 ABC 中，∠ACB=90°，BD 為 ∠ABC 角平分線，DE 垂直 AB。若 AB=16，CD=3，求三角形 ABD 面積？", opts: ["16", "24", "48", "96"], ans: 1, hint: "因為 BD 是角平分線，D 到 AB 的距離(DE) 會等於 D 到 BC 的距離(DC)。所以 DE = DC = 3。三角形 ABD 的底是 AB(16)，高是 DE(3)，代入底乘高除以二！" },
+        { source: "角平分線判別性質 (P.147)", q: "D在 BC上，DE垂直AB、DF垂直AC，且DE=DF。若∠BAD=42°、∠C=60°，求∠B？", opts: ["36°", "42°", "60°", "84°"], ans: 0, hint: "D 到兩邊距離相等(DE=DF)，代表 AD 是 ∠A 的角平分線！所以整個 ∠A = 42° + 42° = 84°。接著利用三角形內角和 180° 扣除 ∠A 和 ∠C 就能找到 ∠B。" },
+        { source: "等腰三角形性質 (P.149)", q: "D為 BC上一點，AB=AD=CD，且 ∠C=32°，求 ∠B？", opts: ["32°", "58°", "64°", "116°"], ans: 2, hint: "先看右邊的等腰三角形 ADC，因為 AD=CD，所以 ∠DAC=32°。接著算外角 ∠ADB = 32°+32°=64°。再看左邊的等腰三角形 ABD (AB=AD)，所以底角 ∠B = ∠ADB！" },
+        { source: "面積綜合應用 (P.153)", q: "AD 為 ∠BAC 角平分線，DE垂直AB、DF垂直AC，AB=6、AC=8。若三角形ABC面積為21，求 DE？", opts: ["2", "3", "4", "5"], ans: 1, hint: "角平分線性質：DE = DF (設為 x)。把大三角形 ABC 切成左(ABD)右(ACD)兩塊。面積 = (6*x/2) + (8*x/2) = 21。解方程式 3x + 4x = 21。" }
+    ];
+
+    const postTestData = [
+        { source: "類 P.144", q: "直線 L 為線段 BC 的中垂線，且交 AB 於 E 點。若三角形 AEC 周長為 30，AC = 10，則 AB = ?", opts: ["15", "20", "25", "30"], ans: 1 },
+        { source: "類 P.147", q: "三角形 ABC 中，D 在 BC 上，DE 垂直 AB、DF 垂直 AC，且 DE = DF。若 ∠BAD = 35°，∠C = 70°，則 ∠B = ?", opts: ["35°", "40°", "60°", "75°"], ans: 1 },
+        { source: "類 P.150", q: "三角形 ABC 中，∠A = 45°，∠B = 90°，則此三角形的邊長中，哪兩個邊的長度相等？", opts: ["AB = BC", "AB = AC", "BC = AC", "三邊皆不相等"], ans: 0 },
+        { source: "類 P.153", q: "AD 為 ∠BAC 的角平分線，交 BC 於 D 點，DE 垂直 AB、DF 垂直 AC，且 AB = 10、AC = 12。若三角形 ABC 的面積為 44，則 DE = ?", opts: ["2", "3", "4", "5"], ans: 2 },
+        { source: "類 P.154", q: "若要在圖書館旁設置飲水機，希望飲水機到書架 AB、BC 的距離相等，且到出口 C、D 的距離也相等。應尋找何種線的交點？", opts: ["∠ABC 的角平分線與 CD 的中垂線", "∠ABC 的角平分線與 CD 的角平分線", "AB 的中垂線與 CD 的中垂線", "AB 的中垂線與 CD 的角平分線"], ans: 0 }
+    ];
+
+    // --- 系統變數 ---
+    let studentInfo = { className: '', stuNum: '', name: '', preScore: 0, postScore: 0, hintCount: 0 };
+    let allStudentData = JSON.parse(localStorage.getItem('math_records')) || [];
+
+    // --- 產生 AI 診斷回饋邏輯 ---
+    function getAIAnalysis(preScore, postScore, hintCount) {
+        let diff = postScore - preScore;
+        if (preScore >= 80) {
+            return "先備知識十分穩固，能精準運用中垂線與角平分線性質，學習成效極佳。";
+        } else if (diff > 0) {
+            return `前測觀念尚未釐清。經系統 ${hintCount} 次課本概念提示後順利修正認知，後測進步顯著，互動干預成功！`;
+        } else {
+            return `依賴了 ${hintCount} 次提示，仍需時間消化幾何性質轉換為代數的邏輯。建議針對課本 P.144~153 進行一對一指導。`;
+        }
+    }
+
+    // --- 介面控制 ---
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    function renderQuestions(data, containerId, prefix) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        data.forEach((item, index) => {
+            let html = `<div class="question-box">
+                <span class="source-tag">${item.source}</span>
+                <p><strong>第 ${index + 1} 題：${item.q}</strong></p>
+                <div class="radio-group">`;
+            item.opts.forEach((opt, oIdx) => {
+                html += `<label><input type="radio" name="${prefix}_q${index}" value="${oIdx}"> ${opt}</label>`;
+            });
+            html += `</div></div>`;
+            container.innerHTML += html;
+        });
+    }
+
+    // --- 流程控制 ---
+    function startTest(type) {
+        if (type === 'pretest') {
+            const cls = document.getElementById('student-class');
+            const num = document.getElementById('student-number').value;
+            const name = document.getElementById('student-name').value;
+            
+            if (!num || !name) { alert('請完整輸入座號與姓名！'); return; }
+            
+            studentInfo.className = cls.options[cls.selectedIndex].text;
+            studentInfo.stuNum = num;
+            studentInfo.name = name;
+            
+            renderQuestions(preTestData, 'pretest-container', 'pre');
+            showSection('pretest-section');
+        } else if (type === 'posttest') {
+            renderQuestions(postTestData, 'posttest-container', 'post');
+            showSection('posttest-section');
+        }
+    }
+
+    function submitPreTest() {
+        let score = 0;
+        for (let i = 0; i < preTestData.length; i++) {
+            const selected = document.querySelector(`input[name="pre_q${i}"]:checked`);
+            if (!selected) { alert(`第 ${i+1} 題尚未作答！`); return; }
+            if (parseInt(selected.value) === preTestData[i].ans) score += 20;
+        }
+        studentInfo.preScore = score;
+        alert(`前測完成！準備進入互動學習區。`);
+        initLearning();
+        showSection('learning-section');
+    }
+
+    function submitPostTest() {
+        let score = 0;
+        for (let i = 0; i < postTestData.length; i++) {
+            const selected = document.querySelector(`input[name="post_q${i}"]:checked`);
+            if (!selected) { alert(`第 ${i+1} 題尚未作答！`); return; }
+            if (parseInt(selected.value) === postTestData[i].ans) score += 20;
+        }
+        studentInfo.postScore = score;
+        
+        saveToDatabase();
+        generateReport();
+    }
+
+    // --- 互動學習區邏輯 ---
+    function initLearning() {
+        const container = document.getElementById('learning-container');
+        container.innerHTML = '';
+        learningData.forEach((item, i) => {
+            let html = `<div class="question-box" id="learn_box_${i}" style="display: ${i === 0 ? 'block' : 'none'};">
+                <span class="source-tag">${item.source}</span>
+                <p><strong>${item.q}</strong></p>
+                <div class="radio-group">`;
+            item.opts.forEach((opt, oIdx) => {
+                html += `<label><input type="radio" name="learn_q${i}" value="${oIdx}"> ${opt}</label>`;
+            });
+            html += `</div>
+                <button id="learn_btn_${i}" onclick="checkLearning(${i})">檢查答案</button>
+                <div id="hint_${i}" class="hint-box">🤖 AI 觀念提示：${item.hint}</div>
+                <div id="success_${i}" class="success-box">🎉 答對了！你已成功掌握這個課本觀念。</div>
+            </div>`;
+            container.innerHTML += html;
+        });
+    }
+
+    function checkLearning(idx) {
+        const selected = document.querySelector(`input[name="learn_q${idx}"]:checked`);
+        if (!selected) { alert('請先選擇一個答案！'); return; }
+
+        const isCorrect = parseInt(selected.value) === learningData[idx].ans;
+        if (isCorrect) {
+            document.getElementById(`success_${idx}`).style.display = 'block';
+            document.getElementById(`hint_${idx}`).style.display = 'none';
+            document.getElementById(`learn_btn_${idx}`).style.display = 'none';
+            
+            setTimeout(() => {
+                if (idx + 1 < learningData.length) {
+                    document.getElementById(`learn_box_${idx+1}`).style.display = 'block';
+                    document.getElementById(`learn_box_${idx}`).style.opacity = '0.6'; 
+                    window.scrollBy({ top: 300, behavior: 'smooth' });
+                } else {
+                    document.getElementById('btn-to-posttest').style.display = 'block';
+                    alert('恭喜完成所有課本觀念挑戰！請進入後測驗證成效。');
+                }
+            }, 800);
+        } else {
+            document.getElementById(`hint_${idx}`).style.display = 'block';
+            studentInfo.hintCount++;
+        }
+    }
+
+    // --- 儲存與後台管理 ---
+    function saveToDatabase() {
+        allStudentData.push({
+            className: studentInfo.className,
+            stuNum: studentInfo.stuNum,
+            name: studentInfo.name,
+            preScore: studentInfo.preScore,
+            postScore: studentInfo.postScore,
+            hintCount: studentInfo.hintCount
+        });
+        localStorage.setItem('math_records', JSON.stringify(allStudentData));
+    }
+
+    function showAdmin() {
+        const password = prompt("請輸入教師後台密碼：");
+        if (password !== "0606") {
+            alert("密碼錯誤，拒絕存取！");
+            return;
+        }
+
+        const tbody = document.getElementById('admin-table-body');
+        tbody.innerHTML = '';
+        
+        if (allStudentData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8">目前尚無測驗紀錄</td></tr>';
+        } else {
+            [...allStudentData].reverse().forEach(record => {
+                let status = record.postScore > record.preScore ? "📈 進步" : (record.postScore === 100 ? "⭐ 優秀" : "⚠️ 需輔導");
+                let statusColor = record.postScore > record.preScore ? "color:green;" : (record.postScore === 100 ? "color:blue;" : "color:red;");
+                let aiFeedback = getAIAnalysis(record.preScore, record.postScore, record.hintCount);
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${record.className}</td>
+                        <td>${record.stuNum}</td>
+                        <td>${record.name}</td>
+                        <td>${record.preScore}</td>
+                        <td>${record.postScore}</td>
+                        <td>${record.hintCount}</td>
+                        <td style="font-weight:bold; ${statusColor}">${status}</td>
+                        <td class="ai-diagnosis-cell">${aiFeedback}</td>
+                    </tr>
+                `;
+            });
+        }
+        showSection('admin-section');
+    }
+
+    function clearAllData() {
+        if(confirm("確定要刪除所有學生的測驗資料嗎？這個動作無法復原喔！")) {
+            localStorage.removeItem('math_records');
+            allStudentData = [];
+            showAdmin();
+            alert("資料已全部清除！");
+        }
+    }
+
+    // --- 生成個人報告 ---
+    function generateReport() {
+        document.getElementById('report-name').innerText = `學生：${studentInfo.className} ${studentInfo.name} 的專屬報告`;
+        document.getElementById('score-pre').innerText = studentInfo.preScore;
+        document.getElementById('score-post').innerText = studentInfo.postScore;
+        document.getElementById('hint-count').innerText = studentInfo.hintCount;
+
+        // 呼叫共同的 AI 診斷函數
+        let analysis = getAIAnalysis(studentInfo.preScore, studentInfo.postScore, studentInfo.hintCount);
+        
+        document.getElementById('ai-analysis').innerHTML = analysis;
+        showSection('report-section');
+    }
+</script>
+
+</body>
+</html>
